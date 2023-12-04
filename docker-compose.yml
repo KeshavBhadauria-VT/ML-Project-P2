@@ -1,0 +1,41 @@
+version: '3'
+services:
+  api:
+    image: container.cs.vt.edu/keshav/capstone2023/flask-image-real:latest
+    container_name: flask-api
+    build: api
+    command: ["flask", "--app", "app.py", "--debug", "run", "--host=0.0.0.0"]
+    volumes:
+      - ./api:/backend
+      - flask-dev:/backend-dev  # Create a volume for development
+    networks:
+      - appnet
+    environment:
+      - FLASK_ENV=development
+      - FLASK_APP=app.py
+    ports:
+      - "4000:5000"
+
+  react-app:
+    image: container.cs.vt.edu/keshav/capstone2023/react-image-real:latest
+    container_name: react-client
+    build:
+      context: ./client
+    ports:
+      - "3000:3000"
+    networks:
+      - appnet
+    depends_on:
+      - api
+    volumes:
+      - ./client/src:/app/src
+      - ./client/public:/app/public
+
+volumes:
+  node-modules:
+  flask-dev:  # Create a volume for Flask development code
+
+
+networks:
+  appnet:
+    driver: bridge

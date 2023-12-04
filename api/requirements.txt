@@ -1,0 +1,11 @@
+python-decouple
+python-cas
+flask
+nba_api
+flask-sock
+mysql-connector-python
+flask-cors
+mysqlclient
+Flask-SQLAlchemy
+PyMySQL
+SQLAlchemy-serializer
