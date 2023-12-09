@@ -2,44 +2,102 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
-from sklearn.preprocessing import MinMaxScaler
-import matplotlib.pyplot as plt
+from sklearn.preprocessing import MinMaxScaler, LabelEncoder, OneHotEncoder
+import numpy as np
 
-# Load the historical data from the CSV file
-file_path = "data/2018-19.csv"
-df = pd.read_csv(file_path)
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+from xgboost import XGBRegressor
 
-# Shift the FPTS values to represent past performance (e.g., using data from the previous game)
-df['FPTS_shifted'] = df.groupby('Player')['FPTS'].shift(1)
+# List of file paths for each season
+season_files = [
+    "data/2013-14.csv",
+    "data/2014-15.csv",
+    "data/2015-16.csv",
+    "data/2016-17.csv",
+    "data/2017-18.csv",
+]
+
+# Concatenate DataFrames and reset the index
+all_seasons_df = pd.concat(
+    [pd.read_csv(file) for file in season_files], ignore_index=True
+)
+
+# Check for and drop duplicate rows
+all_seasons_df = all_seasons_df.drop_duplicates()
+
+# Reset the index
+all_seasons_df.reset_index(drop=True, inplace=True)
+
+# Shift the FPTS values to represent past performance
+all_seasons_df["FPTS_shifted"] = all_seasons_df.groupby("Player")["FPTS"].shift(1)
 
 # Drop the first row as it will have NaN values after shifting
-df = df.dropna()
+all_seasons_df = all_seasons_df.dropna()
 
 # Select features (X) and target variable (y)
-features = ["PTS", "TRB", "AST", "STL", "BLK", "TOV"]
+features = ["PTS", "TRB", "AST", "STL", "BLK", "TOV", "Team", "Against"]
 target = "FPTS_shifted"  # Use shifted FPTS as the target variable
+
+# Encode categorical variables using LabelEncoder
+label_encoder = LabelEncoder()
+all_seasons_df["Team"] = label_encoder.fit_transform(all_seasons_df["Team"])
+all_seasons_df["Against"] = label_encoder.fit_transform(all_seasons_df["Against"])
+
+# One-hot encode categorical variables
+one_hot_encoder = OneHotEncoder(drop="first", sparse=False)
+encoded_features = pd.DataFrame(
+    one_hot_encoder.fit_transform(all_seasons_df[["Team", "Against"]])
+)
+encoded_features.columns = one_hot_encoder.get_feature_names_out(["Team", "Against"])
+all_seasons_df = pd.concat([all_seasons_df, encoded_features], axis=1)
+
+# Reset the index
+all_seasons_df.reset_index(drop=True, inplace=True)
+
+# Update the features list to include the correct column names
+features += list(encoded_features.columns)
 
 # Create a dictionary to store models for each player
 player_models = {}
+predicted_fpts_dict = {}
 
 # Iterate over unique players and train individual models
-for player in df['Player'].unique():
-    player_df = df[df['Player'] == player]
+for player in all_seasons_df["Player"].unique():
+    player_df = all_seasons_df[all_seasons_df["Player"] == player]
 
     # Check if there are enough samples for training
     if len(player_df) > 1:
         X = player_df[features]
         y = player_df[target]
 
+        # Check for constant or near-constant target variable
+        if np.isclose(np.std(y), 0).any():
+            print(
+                f"Skipping {player} due to constant or near-constant target variable."
+            )
+            continue
+
         # Normalize features using Min-Max scaling
         scaler = MinMaxScaler()
         X_normalized = scaler.fit_transform(X)
 
+        # Check for missing or infinite values
+        if (
+            X.isnull().any().any()
+            or y.isnull().any().any()
+            or np.isinf(X).any().any()
+            or np.isinf(y).any().any()
+        ):
+            print(f"Skipping {player} due to missing or infinite values.")
+            continue
+
         # Split the data into training and testing sets
-        X_train, X_test, y_train, y_test = train_test_split(X_normalized, y, test_size=0.2, random_state=42)
+        X_train, X_test, y_train, y_test = train_test_split(
+            X_normalized, y, test_size=0.2, random_state=42
+        )
 
         # Create a linear regression model
-        model = LinearRegression()
+        model = RandomForestRegressor(n_estimators=100, random_state=42)
 
         # Train the model
         model.fit(X_train, y_train)
@@ -47,38 +105,40 @@ for player in df['Player'].unique():
         # Make predictions on the test set
         y_pred = model.predict(X_test)
 
+        # Check for constant or near-constant predictions
+        if np.isclose(np.std(y_pred), 0).any():
+            print(f"Skipping {player} due to constant or near-constant predictions.")
+            continue
+
         # Evaluate the model
         mse = mean_squared_error(y_test, y_pred)
         r2 = r2_score(y_test, y_pred)
 
+        # Check for NaN values in metrics
+        if np.isnan(r2).any():
+            print(f"Skipping {player} due to NaN values in R-squared.")
+            continue
+
         # Store the model in the dictionary
-        player_models[player] = {
-            'model': model,
-            'mse': mse,
-            'r2': r2
-        }
+        player_models[player] = {"model": model, "mse": mse, "r2": r2}
 
-# Example: Retrieve the model for a specific player (replace 'PlayerName' with the actual player's name)
-# specific_player_model = player_models['PlayerName']['model']
+        # Retrieve the model for the player
+        if player in player_models:
+            model = player_models[player]["model"]
 
-# Print or analyze the performance metrics for each player's model
-for player, model_info in player_models.items():
-    print(f"Player: {player}")
-    print(f"Mean Squared Error: {model_info['mse']}")
-    print(f"R-squared: {model_info['r2']}")
-    print("------")
+            # Iterate through each game for the player
+            for index, row in player_df.iterrows():
+                # Create a subset of features for the specific game
+                game_features = row[features].values.reshape(1, -1)
 
-# You can also visualize the results for a specific player using a scatter plot
-# For example, replace 'PlayerName' with the actual player's name
-player_name = 'PlayerName'
-player_df = df[df['Player'] == player_name]
-X_player = player_df[features]
-y_player = player_df[target]
-X_player_normalized = scaler.transform(X_player)
-y_player_pred = player_models[player_name]['model'].predict(X_player_normalized)
+                # Predict FPTS for the specific game
+                predicted_fpts = model.predict(game_features)[0]
 
-plt.scatter(y_player, y_player_pred, alpha=0.5)
-plt.title(f'Actual vs. Predicted FPTS for {player_name} (Shifted)')
-plt.xlabel('Actual FPTS (Shifted)')
-plt.ylabel('Predicted FPTS (Shifted)')
-plt.show()
+                # Store the predicted FPTS in the dictionary
+
+                predicted_fpts_dict[f"{player} - Game_{index}"] = predicted_fpts
+
+# Print or use the dictionary with predicted FPTS for each player-game matchup
+print("Predicted FPTS for player-game matchups:")
+for player_game, predicted_fpts in predicted_fpts_dict.items():
+    print(f"{player_game}: {predicted_fpts}")

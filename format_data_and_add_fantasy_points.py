@@ -30,7 +30,10 @@ for csv_file in csv_files:
 
     selected_columns = ["PTS", "TRB", "AST", "STL", "BLK", "TOV"]
 
-    df["FPTS"] = df.apply(lambda row: sum(row[col] * column_weights[col] for col in selected_columns), axis=1)
+    df["FPTS"] = df.apply(
+        lambda row: sum(row[col] * column_weights[col] for col in selected_columns),
+        axis=1,
+    )
     df.to_csv(file_path, index=False)
 
     # Print a message indicating the completion of processing for each file
