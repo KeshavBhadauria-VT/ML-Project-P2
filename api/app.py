@@ -3,9 +3,16 @@ from nba_api.stats.static import players
 import sys
 from flask_cors import CORS
 from nba_api.stats.static import teams
+from flask import request
+from nba_prediction_code.web_scraping.web_scrap import web_scrap_data
+import pandas as pd
+import joblib
+
 
 app = Flask(__name__)
 
+
+#todo incorpate model here
 my_dict = {
     "Ben Simmons": 41.05666666666666,
     "Joel Embiid": 51.77162162162162,
@@ -539,6 +546,9 @@ my_dict = {
 }
 CORS(app)
 
+features = "HOME_no,HOME_g,HOME_min,HOME_pts,HOME_reb,HOME_ast,HOME_stl,HOME_blk,HOME_to,HOME_pf,HOME_dreb,HOME_oreb,HOME_pct,HOME_pct_2,HOME_pct_3,HOME_eff,HOME_deff,AWAY_no,AWAY_g,AWAY_min,AWAY_pts,AWAY_reb,AWAY_ast,AWAY_stl,AWAY_blk,AWAY_to,AWAY_pf,AWAY_dreb,AWAY_oreb,AWAY_pct,AWAY_pct_2,AWAY_pct_3,AWAY_eff,AWAY_deff".split(",")
+model_svc = joblib.load('nba_prediction_code/model_svc.joblib')
+scaler = joblib.load('nba_prediction_code/scaler.joblib')
 
 @app.route("/api/hello", methods=["GET"])
 def hello():
@@ -555,9 +565,56 @@ def get_teams():
     return jsonify(data=teams.get_teams())
 
 
+
 @app.route("/api/get_prediction/<name>", methods=["GET"])
 def get_prediction(name):
     return jsonify(data=my_dict.get(name, 7.5))
+
+@app.route("/api/get_prediction/nba_teams", methods=["GET"])
+def get_nba_prediction():
+    team1 = request.args.get('team1')
+    team2 = request.args.get('team2')
+    web_scraped_data = web_scrap_data()
+    print(web_scraped_data.keys(), file=sys.stderr)
+    home_team_stats = web_scraped_data[team1]
+    away_team_stats = web_scraped_data[team2]
+
+    home_team_stats.pop(12)
+    home_team_stats.pop(13)
+    home_team_stats.pop(14)
+
+    away_team_stats.pop(12)
+    away_team_stats.pop(13)
+    away_team_stats.pop(14)
+    # Call the function with example data
+    
+
+    result = predict_game_outcome(home_team_stats, away_team_stats, model_svc, scaler)
+    print(result, file=sys.stderr)
+
+    # print(web_scraped_data[team1], file=sys.stderr)
+    # print(web_scraped_data[team2], file=sys.stderr)
+    return jsonify(data=result)
+
+
+# Function from your script
+def predict_game_outcome(home_team_stats, away_team_stats, model, scaler):
+    # Combine home and away stats
+    game_stats = home_team_stats + away_team_stats
+    
+    # Convert to a DataFrame (reshape for a single sample)
+    game_stats_df = pd.DataFrame([game_stats], columns=features)
+    
+    # Scale the stats
+    game_stats_scaled = scaler.transform(game_stats_df)
+    
+    # Make prediction
+    prediction = model.predict(game_stats_scaled)
+    
+    # Return the prediction
+    return "Home Team Wins" if prediction[0] else "Away Team Wins"
+
+
 
 
 if __name__ == "__main__":

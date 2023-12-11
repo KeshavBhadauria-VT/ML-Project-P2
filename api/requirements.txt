@@ -1,5 +1,6 @@
 python-decouple
 python-cas
+scikit-learn
 flask
 nba_api
 flask-sock
@@ -8,4 +9,8 @@ flask-cors
 mysqlclient
 Flask-SQLAlchemy
 PyMySQL
+bs4
+numpy
+pandas
+joblib
 SQLAlchemy-serializer

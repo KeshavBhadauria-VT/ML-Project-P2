@@ -130,13 +130,23 @@ const MainPage = (props) => {
 
 
     function calculate_whatever() {
-        if (Math.random() < 0.5) {
-            setOutlineCard("danger");
-            setOutlineCard2("success");
-        } else {
-            setOutlineCard("success");
-            setOutlineCard2("danger");
-        }
+        console.log(teamSelectedList[0].city)
+        console.log(teamSelectedList2[0].city)
+        fetch(`http://localhost:4000/api/get_prediction/nba_teams?team1=${teamSelectedList[0].city}&team2=${teamSelectedList2[0].city}`)
+        .then(response => response.json())
+        .then(data =>  {
+
+            console.log(data.data)
+            if (data.data === "Away Team Wins!") {
+                setOutlineCard("success");
+                setOutlineCard2("danger");
+            } else {
+                setOutlineCard("danger");
+                setOutlineCard2("success");
+            }
+        })
+        .catch(error => console.error('Error:', error));
+
     }
 
     return (
