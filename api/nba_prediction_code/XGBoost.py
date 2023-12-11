@@ -3,6 +3,9 @@ from sklearn.model_selection import train_test_split
 from xgboost import XGBClassifier  
 from sklearn.metrics import accuracy_score
 import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import confusion_matrix 
+
 
 # Load data from CSV file
 df = pd.read_csv('data/merged_data.csv')
@@ -22,6 +25,19 @@ predictions = model.predict(X_test)
 # Evaluate the model's accuracy
 accuracy = accuracy_score(y_test, predictions)
 print(f"Accuracy: {accuracy}")
+
+# Calculate the confusion matrix
+cm = confusion_matrix(y_test, predictions)
+
+# Plotting the confusion matrix
+plt.figure(figsize=(8, 6))
+sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
+plt.title('Confusion Matrix')
+plt.ylabel('True label')
+plt.xlabel('Predicted label')
+plt.show()
+
+
 
 feature_importances = model.feature_importances_
 

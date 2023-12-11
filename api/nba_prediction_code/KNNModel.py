@@ -3,6 +3,9 @@ from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier 
 from sklearn.metrics import accuracy_score
 import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import accuracy_score, confusion_matrix
+
 
 # Load data from CSV file
 df = pd.read_csv('data/merged_data.csv')  # Replace 'your_data.csv' with the actual file path
@@ -23,6 +26,20 @@ predictions = model.predict(X_test)
 
 accuracy = accuracy_score(y_test, predictions)
 print(f"Accuracy: {accuracy}")
+
+# Generate and print the confusion matrix
+conf_matrix = confusion_matrix(y_test, predictions)
+print("Confusion Matrix:")
+print(conf_matrix)
+
+# Plot the confusion matrix
+plt.figure(figsize=(8, 6))
+sns.heatmap(conf_matrix, annot=True, fmt='g', cmap='Blues')  # 'g' for generic number format
+plt.title('Confusion Matrix')
+plt.ylabel('Actual label')
+plt.xlabel('Predicted label')
+plt.show()
+
 
 if len(features) == 2:
     plt.figure(figsize=(10, 6))

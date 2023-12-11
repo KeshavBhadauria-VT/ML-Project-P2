@@ -3,7 +3,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 import matplotlib.pyplot as plt
-
+import seaborn as sns
+from sklearn.metrics import confusion_matrix 
 
 
 df = pd.read_csv('data/merged_data.csv') 
@@ -26,6 +27,20 @@ predictions = model.predict(X_test)
 # Evaluate the model's accuracy
 accuracy = accuracy_score(y_test, predictions)
 print(f"Accuracy: {accuracy}")
+
+
+# Calculate the confusion matrix
+cm = confusion_matrix(y_test, predictions)
+
+# Plotting the confusion matrix
+plt.figure(figsize=(8, 6))
+sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
+plt.title('Confusion Matrix')
+plt.ylabel('True label')
+plt.xlabel('Predicted label')
+plt.show()
+
+
 
 # Get feature importances
 feature_importances = model.feature_importances_

@@ -4,9 +4,10 @@ from sklearn.svm import LinearSVC
 from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
-import seaborn as sns
 import shap
-import joblib 
+import joblib
+import seaborn as sns
+from sklearn.metrics import confusion_matrix 
 
 
 df = pd.read_csv('data/merged_data.csv')
@@ -37,6 +38,18 @@ predictions_svc = model_svc.predict(X_test_scaled)
 # Evaluate the LinearSVC model's accuracy
 accuracy_svc = accuracy_score(y_test, predictions_svc)
 print(f"LinearSVC Accuracy: {accuracy_svc}")
+
+# Calculate the confusion matrix
+cm = confusion_matrix(y_test, predictions_svc)
+
+# Plotting the confusion matrix
+plt.figure(figsize=(8, 6))
+sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
+plt.title('Confusion Matrix')
+plt.ylabel('True label')
+plt.xlabel('Predicted label')
+plt.show()
+
 
 # Visualize decision boundaries (example for two features)
 if len(features) == 2:

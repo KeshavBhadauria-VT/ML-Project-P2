@@ -2,7 +2,10 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import GradientBoostingClassifier 
 from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, confusion_matrix
 import matplotlib.pyplot as plt
+import seaborn as sns
+
 
 # Load data from CSV file
 df = pd.read_csv('data/merged_data.csv') 
@@ -24,6 +27,21 @@ predictions = model.predict(X_test)
 accuracy = accuracy_score(y_test, predictions)
 print(f"Accuracy: {accuracy}")
 
+# Generate and print the confusion matrix
+conf_matrix = confusion_matrix(y_test, predictions)
+print("Confusion Matrix:")
+print(conf_matrix)
+
+# Plot the confusion matrix
+plt.figure(figsize=(8, 6))
+sns.heatmap(conf_matrix, annot=True, fmt='g', cmap='Blues')  # 'g' for generic number format
+plt.title('Confusion Matrix')
+plt.ylabel('Actual label')
+plt.xlabel('Predicted label')
+plt.show()
+
+
+
 # Get feature importances
 feature_importances = model.feature_importances_
 
@@ -32,6 +50,8 @@ feature_importance_df = pd.DataFrame({'Feature': features, 'Importance': feature
 
 # Sort the DataFrame by importance in descending order
 feature_importance_df = feature_importance_df.sort_values(by='Importance', ascending=False)
+
+
 
 # Plot feature importances
 plt.figure(figsize=(10, 6))
