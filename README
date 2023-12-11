@@ -1,0 +1,13 @@
+api is where ML models are plus the API routes that the front end calls
+client is just the front end code
+
+```docker compose up --build``` to run it 
+
+
+api/fanstay_prediction_code is where you can find the code for predicting fanstay scores
+
+api/nba_prediction_code is where you can find the code to predict games
+    The model we ended up can be found here: api/nba_prediction_code/LinearSVC.py
+
+
+the associated data folders is the data used for the model
